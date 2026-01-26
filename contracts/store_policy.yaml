@@ -1,0 +1,14 @@
+contract: "AgentPurchaseLimits"
+target_resource: "/purchase"
+actors:
+  - type: "autonomous_agent"
+
+constraints:
+  - id: "max_quantity"
+    description: "Agents cannot buy more than 5 items at once"
+    condition: "request.quantity <= 5"
+  
+  - id: "spending_limit"
+    description: "Agents cannot spend more than $1500 per request"
+    # Note: price comes from our 'Context Hydration' later
+    condition: "(request.quantity * context.item_price) <= 1500"

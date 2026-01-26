@@ -1,0 +1,45 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5679:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  service:
+    build: ./service
+    expose:
+      - "8080"
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./contracts:/app/contracts
+    environment:
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/eval-contract
+      - BACKEND_URL=http://service:8080
+      - CONTROL_PIT_URL=http://control-pit:5000
+
+  redis:
+    image: redis:alpine
+
+  control-pit:
+    build: ./control-pit
+    depends_on:
+      - redis
+    ports:
+      - "5005:5000"
+
+  frontend:
+      build: ./frontend
+      ports:
+        - "8501:8501"
+      depends_on:
+        - control-pit
+        
+volumes:
+  n8n_data:
