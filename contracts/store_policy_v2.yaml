@@ -11,6 +11,7 @@ metadata:
 constraints:
   total_cost: "context.reality.price * intent.quantity"
   hourly_volume: "context.history.request_count_1h"
+  session_age: "context.now - context.history.session_start"
 
 policies:
   - id: "spending_limit"
@@ -19,3 +20,6 @@ policies:
   - id: "rate_limit"
     condition: "constraints.hourly_volume < 10"
     message: "Temporal abuse detected: too many requests."
+  - id: "stale_intent"
+    condition: "constraints.session_age < 14400"
+    message: "Intent Expired: This delegation has outlived its 4-hour window."

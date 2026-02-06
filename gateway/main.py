@@ -1,4 +1,4 @@
-import os, yaml, requests, json
+import os, yaml, requests, json, time
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -32,7 +32,8 @@ def handle_request():
         },
         "context": {
             "reality": reality,
-            "history": history
+            "history": history,
+            "now": time.time()
         },
         "agent_id": agent_id
     }
