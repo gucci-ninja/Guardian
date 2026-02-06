@@ -23,5 +23,14 @@ def get_ledger():
     events = r.lrange("reasoning_ledger", 0, 9)
     return jsonify([json.loads(e) for e in events])
 
+# Retrieve mock history event data for a given agent_id
+@app.route('/history/<agent_id>', methods=['GET'])
+def get_history(agent_id):
+    # For simplicity, return all events related to this agent_id
+    # all_events = r.lrange("reasoning_ledger", 0, -1)
+    # agent_events = [json.loads(e) for e in all_events if json.loads(e).get('agent_id') == agent_id]
+    # return jsonify(agent_events)
+    return { "request_count_1h": 5, "session_start": 1700000000 }
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

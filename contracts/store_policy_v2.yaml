@@ -1,0 +1,21 @@
+version: "2.0"
+contract: "AgentPurchaseLimits"
+target_resource: "/purchase"
+actors:
+  - type: "autonomous_agent"
+
+metadata:
+  custodian: "finance-ops"
+  description: "Governance for autonomous purchasing agents"
+
+constraints:
+  total_cost: "context.reality.price * intent.quantity"
+  hourly_volume: "context.history.request_count_1h"
+
+policies:
+  - id: "spending_limit"
+    condition: "constraints.total_cost <= 1500"
+    message: "Transaction exceeds authorized limit."
+  - id: "rate_limit"
+    condition: "constraints.hourly_volume < 10"
+    message: "Temporal abuse detected: too many requests."

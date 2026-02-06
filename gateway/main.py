@@ -1,7 +1,12 @@
-import os, yaml, requests
+import os, yaml, requests, json
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
+# Config
+N8N_URL = os.getenv("N8N_WEBHOOK_URL")
+BACKEND_URL = os.getenv("BACKEND_URL")
+CONTROL_PIT_URL = os.getenv("CONTROL_PIT_URL")
 
 # Handle purchase requests from the Agent
 @app.route('/purchase', methods=['POST'])
@@ -10,30 +15,37 @@ def handle_request():
     agent_id = request.headers.get("X-Agent-ID", "autonomous-bot-01")
 
     # 1. CONTRACT RESOLUTION
-    with open("/app/contracts/store_policy.yaml", "r") as f:
+    with open("/app/contracts/store_policy_v2.yaml", "r") as f:
         contract = yaml.safe_load(f)
 
-    # 2. CONTEXT ASSEMBLY (Fetch current state from service to understand reality)
-    api_resp = requests.get(f"{os.getenv('BACKEND_URL')}/items/{intent['item']}")
-    item_context = api_resp.json()
+    # 2. CONTEXT ASSEMBLY (Fetch current state from service to understand reality and history)
+    reality = requests.get(f"{BACKEND_URL}/items/{intent['item']}").json()
+    history = requests.get(f"{CONTROL_PIT_URL}/history/{agent_id}").json()
 
     # 3. EVALUATION (The Pure Function)
     bundle = {
         "intent": intent,
-        "contract": contract,
-        "context": item_context, # Reality
+        "contract": {
+            "metadata": contract.get('metadata'),
+            "constraints": contract.get('constraints'),
+            "policies": contract.get('policies')
+        },
+        "context": {
+            "reality": reality,
+            "history": history
+        },
         "agent_id": agent_id
     }
     
-    engine_resp = requests.post(os.getenv("N8N_WEBHOOK_URL"), json=bundle)
+    engine_resp = requests.post(N8N_URL, json=bundle)
     decision = engine_resp.json()
 
     # 4. EVENT EMISSION (Record the "Reasoning" to the Control Pit)
     # We record the Triad: Intent + Context + Decision
-    requests.post("http://control-pit:5000/events", json={
+    requests.post(f"{CONTROL_PIT_URL}/events", json={
         "agent_id": agent_id,
         "intent": intent,
-        "context_at_execution": item_context,
+        "context_at_execution": bundle["context"],
         "decision": decision
     })
 
