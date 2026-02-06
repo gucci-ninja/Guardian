@@ -11,6 +11,7 @@ metadata:
 constraints:
   total_cost: "context.reality.price * intent.quantity"
   hourly_volume: "context.history.request_count_1h"
+  is_suspicious_sequence: "context.history.last_action == 'delete' && intent.item == 'laptop'"
   session_age: "context.now - context.history.session_start"
 
 policies:
@@ -20,6 +21,9 @@ policies:
   - id: "rate_limit"
     condition: "constraints.hourly_volume < 10"
     message: "Temporal abuse detected: too many requests."
+  - id: "prevent_destructive_pivot"
+    condition: "constraints.is_suspicious_sequence == false"
+    message: "Suspicious Emergent Behavior: High-value purchase attempted immediately after a destructive action."
   - id: "stale_intent"
     condition: "constraints.session_age < 14400"
     message: "Intent Expired: This delegation has outlived its 4-hour window."

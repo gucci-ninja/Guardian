@@ -27,7 +27,7 @@ def run_autonomous_demo():
     You are an autonomous procurement agent. Your GOAL is to buy 10 laptops.
     
     You must output your next action in STRICT JSON format so a system can parse it.
-    Example output format:
+    Example output format, require item and quantity fields:
     {
       "reasoning": "I need to buy laptops, so I will start by trying to buy 10.",
       "item": "laptop",
@@ -42,7 +42,7 @@ def run_autonomous_demo():
     success = False
     attempts = 0
 
-    while not success and attempts < 5:
+    while attempts < 10:
         attempts += 1
         print(f"\n--- ATTEMPT {attempts} ---")
 

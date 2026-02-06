@@ -47,7 +47,6 @@ def get_history(agent_id):
         "request_count_1h": len(agent_events),
         "session_start": agent_events[-1]['timestamp'] if agent_events else now,
         "last_action": agent_events[0]['intent']['item'] if agent_events else None,
-        # You could even calculate rolling averages here
         "avg_qty_1h": sum(e['intent']['quantity'] for e in agent_events) / len(agent_events) if agent_events else 0
     }
     
