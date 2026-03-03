@@ -1,4 +1,4 @@
 FROM python:3.9-slim
-RUN pip install flask redis
+RUN pip install flask redis prometheus_client
 COPY app.py .
 CMD ["python", "app.py"]

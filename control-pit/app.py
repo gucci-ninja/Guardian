@@ -2,21 +2,67 @@ import redis
 import json
 import os
 import time
+import logging
 from flask import Flask, request, jsonify
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
 r = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
 
+# Prometheus Metrics
+POLICY_VIOLATIONS = Counter(
+    'guardian_policy_violations_total',
+    'Total policy violations',
+    ['contract_id', 'policy_id', 'agent_id']
+)
+DECISION_TIME = Histogram(
+    'guardian_decision_latency_seconds',
+    'Time taken to reach a decision',
+    ['contract_id']
+)
+
 # Record an event to the reasoning ledger
 @app.route('/events', methods=['POST'])
 def record_event():
-    event_data = request.json
-    event_data['timestamp'] = time.time()  # Add server timestamp for filtering and ordering
-    # Push event to a Redis List (The Ledger)
+    event_data = request.get_json(force=True)
+    event_data['timestamp'] = time.time()
+    decision = event_data.get('decision', {})
+
+    # 1. EMIT METRICS
+    if not decision.get('authorized'):
+        violations = decision.get('violations') or [{'id': 'policy_violation', 'message': decision.get('reason', 'unknown')}]
+        for violation in violations:
+            POLICY_VIOLATIONS.labels(
+                contract_id=event_data.get('contract_id', 'unknown'),
+                policy_id=violation['id'],
+                agent_id=event_data.get('agent_id', 'unknown')
+            ).inc()
+
+    if event_data.get('decision_latency_s') is not None:
+        DECISION_TIME.labels(
+            contract_id=event_data.get('contract_id', 'unknown')
+        ).observe(event_data['decision_latency_s'])
+
+    # 2. EMIT STRUCTURED LOG — Decision Manifest (for Loki/RAG)
+    logging.info(json.dumps({
+        "msg": "Decision Evaluated",
+        "agent_id": event_data.get('agent_id'),
+        "contract_id": event_data.get('contract_id'),
+        "intent": event_data.get('intent'),
+        "resolved_constraints": decision.get('resolved_constraints'),
+        "authorized": decision.get('authorized'),
+        "violations": decision.get('violations'),
+        "context_snapshot": event_data.get('context_at_execution')
+    }))
+
     r.lpush("reasoning_ledger", json.dumps(event_data))
-    
+
     print(f"Ledger Updated: {event_data.get('decision', {}).get('authorized')}")
     return jsonify({"status": "appended_to_ledger"}), 201
+
+@app.route('/metrics')
+def metrics():
+    return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
 # Retrieve the most recent events from the reasoning ledger
 @app.route('/ledger', methods=['GET'])

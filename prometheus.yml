@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: guardian-control-pit
+    static_configs:
+      - targets: ["control-pit:5000"]

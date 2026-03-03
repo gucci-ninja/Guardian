@@ -38,16 +38,21 @@ def handle_request():
         "agent_id": agent_id
     }
     
+    n8n_start = time.time()
     engine_resp = requests.post(N8N_URL, json=bundle)
     decision = engine_resp.json()
+    n8n_latency = round(time.time() - n8n_start, 4)
 
     # 4. EVENT EMISSION (Record the "Reasoning" to the Control Pit)
-    # We record the Triad: Intent + Context + Decision
+    # We record the Triad: Intent + Context + Decision, plus contract metadata for observability
     requests.post(f"{CONTROL_PIT_URL}/events", json={
         "agent_id": agent_id,
         "intent": intent,
         "context_at_execution": bundle["context"],
-        "decision": decision
+        "decision": decision,
+        "contract_id": contract.get("contract", "unknown"),
+        "contract_version": contract.get("version", "1.0"),
+        "decision_latency_s": n8n_latency,
     })
 
     # 5. ENFORCEMENT
