@@ -36,3 +36,11 @@ python3 untrusted_agent/real_agent.py
 ```
 
 To stop the system: `docker-compose down`
+
+## First-time setup: n8n workflow
+1. After `docker-compose up --build`, open http://localhost:5679 and complete the setup wizard.
+2. Go to **Workflows → Import from file** and select `n8n/n8n-workflow.json`.
+3. Open the imported workflow, click the **Code** node, and paste the contents of `n8n/n8n.js`.
+4. Save and activate ("publish") the workflow (toggle in the top-right of the editor — the webhook only accepts requests when active).
+
+Since I am using the free version of n8n, I am not able to publish my n8n webhook for broader use, so this one-time setup will have to do for now! If there are any changes to the evaluation engine logic (n8n/n8n.js) when you pull, then please open the n8n UI and refresh the code. I'll try to find an easier way to share this code in the meantime.
